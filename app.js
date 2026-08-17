@@ -423,11 +423,13 @@ function renderWeatherRisk(data) {
 // This is separate from the observed JMA Himawari satellite frames.
 // -----------------------------------------------------------------------------
 
-let currentForecastLocation = {
+const FALLBACK_FORECAST_LOCATION = {
   name: "Manila",
   latitude: 14.5995,
   longitude: 120.9842
 };
+
+let currentForecastLocation = { ...FALLBACK_FORECAST_LOCATION };
 
 const forecastMetric = document.getElementById("forecastMetric");
 const forecastLocation = document.getElementById("forecastLocation");
@@ -1011,9 +1013,90 @@ setInterval(() => {
   loadForecast(currentForecastLocation);
 }, 15 * 60 * 1000);
 
-loadForecast(currentForecastLocation);
+// Default Forecast for the visitor's current location when browser
+// geolocation is available. If permission is denied/unavailable, fall back
+// to Manila so the forecast section still has useful data.
+async function getCityNameFromCoordinates(latitude, longitude) {
+  try {
+    const params = new URLSearchParams({
+      format: "jsonv2",
+      lat: String(latitude),
+      lon: String(longitude),
+      zoom: "18",
+      addressdetails: "1"
+    });
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
+      { headers: { Accept: "application/json" } }
+    );
+
+    if (!response.ok) throw new Error(`Reverse geocoding failed (${response.status})`);
+
+    const data = await response.json();
+    const address = data.address || {};
+
+    // Prefer a city/town/municipality, then fall back to the broader locality.
+    return (
+      address.city ||
+      address.town ||
+      address.municipality ||
+      address.city_district ||
+      address.village ||
+      address.county ||
+      "Your Location"
+    );
+  } catch (error) {
+    console.warn("Could not determine city from browser location.", error.message);
+    return "Your Location";
+  }
+}
+
+async function loadForecastForUserLocation() {
+  if (!navigator.geolocation) {
+    loadForecast(FALLBACK_FORECAST_LOCATION);
+    if (citySearchInput) citySearchInput.value = FALLBACK_FORECAST_LOCATION.name;
+    return;
+  }
+
+  forecastLocation.textContent = "Your Location";
+  forecastUpdated.textContent = "Requesting your location…";
+
+  navigator.geolocation.getCurrentPosition(
+    async position => {
+      const latitude = Number(position.coords.latitude);
+      const longitude = Number(position.coords.longitude);
+      const city = await getCityNameFromCoordinates(latitude, longitude);
+      const accuracy = Number(position.coords.accuracy);
+
+      currentForecastLocation = {
+        name: city,
+        latitude,
+        longitude
+      };
+
+      forecastLocation.textContent = city;
+      forecastLocation.title = Number.isFinite(accuracy)
+        ? `GPS location • accuracy ±${Math.round(accuracy)} m`
+        : "GPS location";
+      if (citySearchInput) citySearchInput.value = "";
+      loadForecast(currentForecastLocation);
+    },
+    error => {
+      console.warn("Browser location unavailable; using Manila.", error.message);
+      currentForecastLocation = { ...FALLBACK_FORECAST_LOCATION };
+      if (citySearchInput) citySearchInput.value = FALLBACK_FORECAST_LOCATION.name;
+      loadForecast(FALLBACK_FORECAST_LOCATION);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0
+    }
+  );
+}
+
+loadForecastForUserLocation();
 
 window.addEventListener("resize", drawPagasaForecastChart);
 setTimeout(drawPagasaForecastChart, 250);
-
-if (citySearchInput) citySearchInput.value = "Manila";
