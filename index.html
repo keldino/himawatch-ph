@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Himawari satellite monitoring dashboard for the Philippines">
+  <title>HIMAWatch PH</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">HIMA<span>Watch</span> PH</div>
+        <div class="subtitle">Himawari satellite monitoring • Philippines area of responsibility</div>
+      </div>
+
+      <div class="live-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">LIVE FEED</span>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <div class="main-column">
+      <section class="hero-card">
+        <div class="card-header">
+          <div>
+            <span class="eyebrow">SATELLITE FEED</span>
+            <h1>Himawari-9 • Southeast Asia 2</h1>
+          </div>
+
+          <div class="controls">
+            <label class="select-wrap">
+              <span>Band</span>
+              <select id="bandSelect" aria-label="Satellite band">
+                <option value="b13">Visible / Infrared Composite (B13)</option>
+                <option value="b03">Visible (B03)</option>
+                <option value="b08">Water Vapor (B08)</option>
+                <option value="b07">Shortwave Infrared (B07)</option>
+                <option value="arm">Airmass (ARM)</option>
+                <option value="dnc">Day Natural Color (DNC)</option>
+                <option value="dms">Day Microphysics (DMS)</option>
+                <option value="tre">True Color (TRE)</option>
+                <option value="cve">Cloud Vegetation (CVE)</option>
+                <option value="ngt">Nighttime (NGT)</option>
+                <option value="dst">Dust (DST)</option>
+                <option value="dsl">Dust Low-Level (DSL)</option>
+                <option value="snd" selected>Sand (SND)</option>
+                <option value="vir">Volcanic Ash (VIR)</option>
+                <option value="irv">Infrared (IRV)</option>
+                <option value="trm">Tropical (TRM)</option>
+              </select>
+            </label>
+
+            <button id="playBtn" class="button">Pause</button>
+            <button id="refreshBtn" class="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="image-frame">
+          <div class="loading" id="loading">Loading satellite image…</div>
+          <img id="satelliteImage" alt="Latest Himawari satellite image over Southeast Asia 2">
+          <div class="image-error" id="imageError">
+            Unable to load the satellite image. Retrying with the previous available frame…
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-top">
+            <span class="label">6-HOUR SATELLITE LOOP</span>
+            <strong id="timelineLabel">Loading frames…</strong>
+          </div>
+          <input id="timelineSlider" type="range" min="0" max="143" value="143" step="1">
+          <div class="timeline-scale">
+            <span>6h ago</span>
+            <span>3h ago</span>
+            <span>Now</span>
+          </div>
+        </div>
+
+        <div class="shared-time-strip">
+          <span class="time-dot observed"></span> SATELLITE OBSERVED
+          <span class="time-divider">|</span>
+          <span class="time-dot forecast"></span> MODEL FORECAST
+          <span class="shared-time-value" id="timelineMode">Satellite timeline</span>
+        </div>
+
+        <div class="layer-note" id="layerNote">
+          Satellite mode uses JMA Himawari imagery. Forecast layers use model-based
+          weather prediction data and are separate from the observed satellite frames.
+        </div>
+
+        <div class="image-footer">
+          <div>
+            <span class="label">SATELLITE FRAME</span>
+            <strong id="frameTime">--:-- UTC</strong>
+          </div>
+          <div>
+            <span class="label">PHILIPPINE TIME</span>
+            <strong id="localFrameTime">--:-- PHT</strong>
+          </div>
+          <div>
+            <span class="label">REGION</span>
+            <strong>105°E–140°E / 0°–30°N</strong>
+          </div>
+        </div>
+      </section>
+
+
+        <section class="info-card forecast-card pagasa-style">
+          <div class="forecast-title-row">
+            <div>
+              <span class="eyebrow">PHILIPPINES FORECAST</span>
+              <h2>Forecast for <span id="forecastLocation">Manila</span></h2>
+              <small id="forecastUpdated">Loading forecast…</small>
+            </div>
+<div class="city-search" id="citySearch">
+  <label class="sr-only" for="citySearchInput">Search Philippine city</label>
+  <input id="citySearchInput" type="search" placeholder="Search city..." autocomplete="off" spellcheck="false">
+  <button id="citySearchButton" type="button">Search</button>
+  <div id="citySearchResults" class="city-search-results" hidden></div>
+</div>
+</div>
+
+          <div class="forecast-source-line">
+            <span>Model: ECMWF IFS</span>
+            <span>•</span>
+            <span>24-hour outlook</span>
+          </div>
+
+          <div class="forecast-chart-card">
+            <div class="chart-axis">
+              <span id="chartMaxTemp">--°</span>
+              <span>Temp</span>
+              <span id="chartMinTemp">--°</span>
+            </div>
+            <div class="pagasa-chart-wrap">
+              <canvas id="forecastChart" aria-label="24 hour temperature, rainfall and wind forecast"></canvas>
+              <div class="chart-loading" id="chartLoading">Loading forecast…</div>
+            </div>
+          </div>
+
+          <div class="forecast-selected">
+            <div class="selected-weather-icon" id="currentWeatherIcon">☁</div>
+            <div class="selected-main">
+              <strong id="currentTemperature">--°C</strong>
+              <span id="currentCondition">Loading…</span>
+            </div>
+            <div class="selected-metrics">
+              <div><span>RAIN</span><strong id="currentRain">-- mm</strong></div>
+              <div><span>HUMIDITY</span><strong id="currentHumidity">--%</strong></div>
+              <div><span>WIND</span><strong id="currentWind">-- km/h</strong></div>
+            </div>
+          </div>
+
+          <div class="forecast-section-title">
+            <span>HOURLY FORECAST</span>
+            <span class="chart-legend">
+              <i class="legend-temp"></i> Temp
+              <i class="legend-rain"></i> Rain
+            </span>
+          </div>
+
+          <div class="hourly-strip" id="hourlyForecast"></div>
+
+          <div class="forecast-time-slider">
+            <input id="forecastTimeSlider" type="range" min="0" max="23" value="0" step="1"
+                   aria-label="Forecast time">
+          </div>
+
+          <div class="forecast-section-title five-day-title">
+            <span>5-DAY OUTLOOK</span>
+          </div>
+          <div class="daily-forecast" id="dailyForecast"></div>
+
+          <div class="forecast-source">
+            Forecast values are model guidance, not an official PAGASA warning.
+            Satellite observation remains separate from the forecast.
+          </div>
+
+          <!-- Kept for compatibility with the forecast controls in app.js. -->
+</section>
+      </div>
+
+      <aside class="side-column">
+        <section class="info-card">
+          <span class="eyebrow">MONITORING</span>
+          <h2>Feed status</h2>
+
+          <div class="status-row">
+            <span class="status-dot"></span>
+            <div>
+              <strong id="feedStatus">Connected</strong>
+              <small>JMA Himawari imagery</small>
+            </div>
+          </div>
+
+          <div class="metric">
+            <span>Last refresh</span>
+            <strong id="refreshTime">--:--:--</strong>
+          </div>
+
+          <div class="metric">
+            <span>Next refresh</span>
+            <strong id="nextRefresh">10 min</strong>
+          </div>
+        </section>
+        <section class="info-card alerts-card">
+          <span class="eyebrow">WEATHER ALERTS</span>
+          <h2>Automated weather risk</h2>
+
+          <div class="alert-summary" id="alertSummary">
+            <div class="alert-level normal" id="weatherAlertLevel">
+              <span class="alert-dot"></span>
+              <div>
+                <strong id="alertTitle">No significant risk detected</strong>
+                <small id="alertDetail">Analyzing the latest forecast…</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert-factors" id="alertFactors"></div>
+
+          <div class="legend">
+            <div><span class="legend-dot red"></span> Red — severe risk</div>
+            <div><span class="legend-dot orange"></span> Orange — significant risk</div>
+            <div><span class="legend-dot yellow"></span> Yellow — monitor</div>
+            <div><span class="legend-dot green"></span> Green — no significant risk</div>
+          </div>
+
+          <div class="alert-disclaimer">
+            Automated assessment from Open-Meteo forecast data. These are <strong>not official PAGASA warnings</strong>.
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      <span>HIMAWatch PH</span>
+      <span>Weather data: Open-Meteo • Satellite imagery: JMA</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
