@@ -50,8 +50,7 @@ function getLatestSlot() {
   return slot;
 }
 
-function buildFrameDates() {
-  const latest = getLatestSlot();
+function buildFrameDates(latest = getLatestSlot()) {
   const result = [];
 
   for (let i = MAX_HISTORY_FRAMES - 1; i >= 0; i--) {
@@ -59,6 +58,21 @@ function buildFrameDates() {
   }
 
   return result;
+}
+
+async function findLatestAvailableFrame(band) {
+  const nominalLatest = getLatestSlot();
+
+  // JMA publishes on a 10-minute cadence, but the newest image can arrive
+  // a few minutes after its nominal timestamp. Walk backward until found.
+  for (let offset = 0; offset <= 6; offset++) {
+    const date = new Date(nominalLatest.getTime() - offset * FRAME_INTERVAL_MS);
+    const url = imageUrl(date, band);
+    const result = await preloadImage(url);
+    if (result.ok) return date;
+  }
+
+  return null;
 }
 
 function fileTime(date) {
@@ -105,7 +119,7 @@ function updateFrameDisplay(index) {
   localFrameTime.textContent = formatPhilippineTime(frame.date);
 
   const ageMinutes = Math.round(
-    (getLatestSlot().getTime() - frame.date.getTime()) / 60000
+    ((frames[frames.length - 1]?.date?.getTime() || getLatestSlot().getTime()) - frame.date.getTime()) / 60000
   );
 
   if (ageMinutes <= 10) {
@@ -140,7 +154,16 @@ async function load6HourLoop() {
   setStatus(true);
 
   const band = bandSelect.value;
-  const dates = buildFrameDates();
+  const latestAvailable = await findLatestAvailableFrame(band);
+
+  if (!latestAvailable) {
+    loading.style.display = "none";
+    imageError.style.display = "block";
+    setStatus(false);
+    return;
+  }
+
+  const dates = buildFrameDates(latestAvailable);
 
   // Load in small batches so the browser is not hit with many simultaneous requests.
   const loadedFrames = [];
@@ -748,7 +771,6 @@ function updateForecastSelection(index) {
 // -----------------------------------------------------------------------------
 const citySearch = document.getElementById("citySearch");
 const citySearchInput = document.getElementById("citySearchInput");
-const citySearchButton = document.getElementById("citySearchButton");
 const citySearchResults = document.getElementById("citySearchResults");
 
 function escapeCityHtml(value) {
@@ -848,23 +870,25 @@ async function searchPhilippineCities() {
   }
 }
 
-citySearchButton.addEventListener("click", searchPhilippineCities);
+let citySearchDebounceTimer = null;
 
-citySearchInput.addEventListener("keydown", event => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    searchPhilippineCities();
-  }
-
+// Search as the user types. A short debounce prevents a request on every keystroke.
+citySearchInput.addEventListener("keyup", event => {
   if (event.key === "Escape") {
     closeCityResults();
+    return;
   }
-});
 
-citySearchInput.addEventListener("input", () => {
+  clearTimeout(citySearchDebounceTimer);
+
   if (!citySearchInput.value.trim()) {
     closeCityResults();
+    return;
   }
+
+  citySearchDebounceTimer = setTimeout(() => {
+    searchPhilippineCities();
+  }, 280);
 });
 
 document.addEventListener("click", event => {

@@ -46,9 +46,19 @@ button, select {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.7px;
+}
+
+.brand img {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 9px;
 }
 
 .brand span {
@@ -2591,4 +2601,13 @@ footer {
     height: 94px !important;
     min-height: 94px !important;
   }
+}
+
+
+/* Type-to-search: the city search no longer needs a Search button. */
+.city-search {
+  width: min(360px, 100%);
+}
+.city-search input {
+  width: 100%;
 }

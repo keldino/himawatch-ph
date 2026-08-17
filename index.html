@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Himawari satellite monitoring dashboard for the Philippines">
   <title>HIMAWatch PH</title>
+  <link rel="icon" type="image/svg+xml" href="himawari-h-icon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="brand">HIMA<span>Watch</span> PH</div>
+        <div class="brand"><img src="himawari-h-icon.svg" alt="" aria-hidden="true"><span class="brand-text">HIMA<span>Watch</span> PH</span></div>
         <div class="subtitle">Himawari satellite monitoring • Philippines area of responsibility</div>
       </div>
 
@@ -34,7 +35,7 @@
             <label class="select-wrap">
               <span>Band</span>
               <select id="bandSelect" aria-label="Satellite band">
-                <option value="b13">Visible / Infrared Composite (B13)</option>
+                <option value="b13" selected>Visible / Infrared Composite (B13)</option>
                 <option value="b03">Visible (B03)</option>
                 <option value="b08">Water Vapor (B08)</option>
                 <option value="b07">Shortwave Infrared (B07)</option>
@@ -46,7 +47,7 @@
                 <option value="ngt">Nighttime (NGT)</option>
                 <option value="dst">Dust (DST)</option>
                 <option value="dsl">Dust Low-Level (DSL)</option>
-                <option value="snd" selected>Sand (SND)</option>
+                <option value="snd">Sand (SND)</option>
                 <option value="vir">Volcanic Ash (VIR)</option>
                 <option value="irv">Infrared (IRV)</option>
                 <option value="trm">Tropical (TRM)</option>
@@ -118,7 +119,6 @@
 <div class="city-search" id="citySearch">
   <label class="sr-only" for="citySearchInput">Search Philippine city</label>
   <input id="citySearchInput" type="search" placeholder="Search city..." autocomplete="off" spellcheck="false">
-  <button id="citySearchButton" type="button">Search</button>
   <div id="citySearchResults" class="city-search-results" hidden></div>
 </div>
 </div>
