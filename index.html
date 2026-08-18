@@ -8,6 +8,10 @@
   <link rel="icon" type="image/svg+xml" href="himawari-h-icon.svg">
   <link rel="apple-touch-icon" href="himawari-h-icon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-shell">
@@ -117,121 +121,217 @@
               <h2>Forecast for <span id="forecastLocation">Manila</span></h2>
               <small id="forecastUpdated">Loading forecast…</small>
             </div>
-<div class="city-search" id="citySearch">
-  <label class="sr-only" for="citySearchInput">Search Philippine city</label>
-  <input id="citySearchInput" type="search" placeholder="Search city..." autocomplete="off" spellcheck="false">
-  <div id="citySearchResults" class="city-search-results" hidden></div>
-</div>
-</div>
+            <div class="city-search" id="citySearch">
+              <label class="sr-only" for="citySearchInput">Search Philippine city</label>
+              <input id="citySearchInput" type="search" placeholder="Search city..." autocomplete="off" spellcheck="false">
+              <div id="citySearchResults" class="city-search-results" hidden></div>
+            </div>
+          </div>
 
           <div class="forecast-source-line">
             <span>Model: ECMWF IFS</span>
             <span>•</span>
-            <span>24-hour outlook</span>
+            <span>8-hour outlook</span>
           </div>
 
-          <div class="forecast-chart-card">
-            <div class="chart-axis">
-              <span id="chartMaxTemp">--°</span>
-              <span>Temp</span>
-              <span id="chartMinTemp">--°</span>
-            </div>
-            <div class="pagasa-chart-wrap">
-              <canvas id="forecastChart" aria-label="24 hour temperature, rainfall and wind forecast"></canvas>
-              <div class="chart-loading" id="chartLoading">Loading forecast…</div>
-            </div>
-          </div>
+          <div class="forecast-body">
+            <section class="forecast-subpanel forecast-current-panel">
+              <div class="forecast-subpanel-label">CURRENT CONDITIONS</div>
+              <div class="forecast-selected">
+                <div class="selected-weather-icon" id="currentWeatherIcon">☁</div>
+                <div class="selected-main">
+                  <strong id="currentTemperature">--°C</strong>
+                  <span id="currentCondition">Loading…</span>
+                </div>
+                <div class="selected-metrics">
+                  <div><span>RAIN</span><strong id="currentRain">-- mm</strong></div>
+                  <div><span>HUMIDITY</span><strong id="currentHumidity">--%</strong></div>
+                  <div><span>WIND</span><strong id="currentWind">-- km/h</strong></div>
+                </div>
+              </div>
+            </section>
 
-          <div class="forecast-selected">
-            <div class="selected-weather-icon" id="currentWeatherIcon">☁</div>
-            <div class="selected-main">
-              <strong id="currentTemperature">--°C</strong>
-              <span id="currentCondition">Loading…</span>
-            </div>
-            <div class="selected-metrics">
-              <div><span>RAIN</span><strong id="currentRain">-- mm</strong></div>
-              <div><span>HUMIDITY</span><strong id="currentHumidity">--%</strong></div>
-              <div><span>WIND</span><strong id="currentWind">-- km/h</strong></div>
-            </div>
-          </div>
+            <section class="forecast-subpanel forecast-chart-panel">
+              <div class="forecast-subpanel-label">8-HOUR OUTLOOK</div>
+              <div class="forecast-chart-card">
+                <div class="chart-axis">
+                  <span id="chartMaxTemp">--°</span>
+                  <span>Temp</span>
+                  <span id="chartMinTemp">--°</span>
+                </div>
+                <div class="pagasa-chart-wrap">
+                  <canvas id="forecastChart" aria-label="8 hour temperature, rainfall and wind forecast"></canvas>
+                  <div class="chart-loading" id="chartLoading">Loading forecast…</div>
+                </div>
+              </div>
+            </section>
 
-          <div class="forecast-section-title">
-            <span>HOURLY FORECAST</span>
-            <span class="chart-legend">
-              <i class="legend-temp"></i> Temp
-              <i class="legend-rain"></i> Rain
-            </span>
-          </div>
+            <section class="forecast-subpanel forecast-hourly-panel">
+              <div class="forecast-subpanel-label">HOURLY FORECAST</div>
+              <div class="hourly-strip" id="hourlyForecast"></div>
+              <div class="forecast-time-slider">
+                <input id="forecastTimeSlider" type="range" min="0" max="23" value="0" step="1" aria-label="Forecast time">
+              </div>
+            </section>
 
-          <div class="hourly-strip" id="hourlyForecast"></div>
-
-          <div class="forecast-time-slider">
-            <input id="forecastTimeSlider" type="range" min="0" max="23" value="0" step="1"
-                   aria-label="Forecast time">
-          </div>
-
-          <div class="forecast-section-title five-day-title">
-            <span>5-DAY OUTLOOK</span>
-          </div>
-          <div class="daily-forecast" id="dailyForecast"></div>
-
-          <div class="forecast-source">
-            Forecast values are model guidance, not an official PAGASA warning.
-            Satellite observation remains separate from the forecast.
+            <section class="forecast-subpanel forecast-daily-panel">
+              <div class="forecast-subpanel-label">5-DAY OUTLOOK</div>
+              <div class="forecast-source">
+                Forecast values are model guidance, not an official PAGASA warning. Satellite observation remains separate from the forecast.
+              </div>
+              <div class="daily-forecast" id="dailyForecast"></div>
+            </section>
           </div>
 
           <!-- Kept for compatibility with the forecast controls in app.js. -->
-</section>
-      </div>
+        </section>
 
-      <aside class="side-column">
-        <section class="info-card">
-          <span class="eyebrow">MONITORING</span>
-          <h2>Feed status</h2>
-
-          <div class="status-row">
-            <span class="status-dot"></span>
+        <section class="info-card weather-map-card">
+          <div class="card-header">
             <div>
-              <strong id="feedStatus">Connected</strong>
-              <small>JMA Himawari imagery</small>
+              <span class="eyebrow">PRECIPITATION &amp; STORM MAP</span>
+              <h2>Rain radar &amp; thunderstorm risk <span id="stormMapLocation" class="map-location-label">Your Location</span></h2>
+            </div>
+
+            <div class="controls">
+              <button id="radarPlayBtn" class="button">Pause</button>
+              <button id="radarRefreshBtn" class="button">Refresh</button>
             </div>
           </div>
 
-          <div class="metric">
-            <span>Last refresh</span>
-            <strong id="refreshTime">--:--:--</strong>
+          <div class="map-layer-toggles">
+            <label class="layer-toggle active-layer">
+              <input type="checkbox" id="toggleRadarLayer" checked>
+              <span><i class="layer-swatch precip"></i>Precipitation radar &amp; nowcast</span>
+            </label>
+            <label class="layer-toggle active-layer">
+              <input type="checkbox" id="toggleCloudLayer" checked>
+              <span><i class="layer-swatch clouds"></i>Himawari-9 cloud cover</span>
+            </label>
+            <label class="layer-toggle active-layer">
+              <input type="checkbox" id="toggleRiskLayer" checked>
+              <span><i class="layer-swatch storm"></i>Thunderstorm risk</span>
+            </label>
+            <label class="opacity-control">
+              <span>Cloud opacity</span>
+              <input id="cloudOpacity" type="range" min="0" max="100" value="42" step="1">
+            </label>
+            <label class="opacity-control">
+              <span>Rain opacity</span>
+              <input id="radarOpacity" type="range" min="20" max="100" value="68" step="1">
+            </label>
           </div>
 
-          <div class="metric">
-            <span>Next refresh</span>
-            <strong id="nextRefresh">10 min</strong>
+          <div class="map-frame">
+            <div id="weatherMap"></div>
+            <div class="map-loading" id="mapLoading">Loading radar…</div>
           </div>
-        </section>
-        <section class="info-card alerts-card">
-          <span class="eyebrow">WEATHER ALERTS</span>
-          <h2>Automated weather risk</h2>
 
-          <div class="alert-summary" id="alertSummary">
-            <div class="alert-level normal" id="weatherAlertLevel">
-              <span class="alert-dot"></span>
-              <div>
-                <strong id="alertTitle">No significant risk detected</strong>
-                <small id="alertDetail">Analyzing the latest forecast…</small>
+          <div class="timeline">
+            <div class="timeline-top">
+              <span class="label">RADAR TIMELINE</span>
+              <strong id="radarTimelineLabel">Loading frames…</strong>
+            </div>
+            <input id="radarSlider" type="range" min="0" max="0" value="0" step="1">
+            <div class="timeline-scale">
+              <span>~2h ago</span>
+              <span>Now</span>
+              <span>+~1h forecast</span>
+            </div>
+          </div>
+
+          <div class="shared-time-strip">
+            <span class="time-dot observed"></span> RADAR OBSERVED
+            <span class="time-divider">|</span>
+            <span class="time-dot forecast"></span> NOWCAST FORECAST
+            <span class="shared-time-value" id="radarTimelineMode">Radar timeline</span>
+          </div>
+
+          <div class="map-layer-status">
+            <span><b>LIVE MAP</b> RainViewer precipitation + Himawari-9 cloud imagery</span>
+            <span id="cloudFrameLabel">Cloud frame: loading…</span>
+          </div>
+
+          <div class="map-legend">
+            <div class="legend-group">
+              <span class="legend-caption">Precipitation intensity</span>
+              <div class="precip-gradient"></div>
+              <div class="precip-gradient-labels"><span>Light</span><span>Moderate</span><span>Heavy</span></div>
+            </div>
+            <div class="legend-group">
+              <span class="legend-caption">Storm risk (next 6h)</span>
+              <div class="legend">
+                <div><span class="legend-dot red"></span> Severe</div>
+                <div><span class="legend-dot orange"></span> Significant</div>
+                <div><span class="legend-dot yellow"></span> Advisory</div>
+                <div><span class="legend-dot green"></span> Normal</div>
               </div>
             </div>
           </div>
 
-          <div class="alert-factors" id="alertFactors"></div>
+          <div class="layer-note">
+            Precipitation: RainViewer observed radar + short-term nowcast. Clouds: JMA Himawari-9 B13 infrared imagery,
+            refreshed on the same 10-minute cadence as the satellite feed. Storm risk is calculated from Open-Meteo forecast
+            data using the same thresholds as the alert panel — not an official PAGASA warning.
+            Base map: CARTO / OpenStreetMap contributors.
+          </div>
+        </section>
+      </div>
 
-          <div class="legend">
-            <div><span class="legend-dot red"></span> Red — severe risk</div>
-            <div><span class="legend-dot orange"></span> Orange — significant risk</div>
-            <div><span class="legend-dot yellow"></span> Yellow — monitor</div>
-            <div><span class="legend-dot green"></span> Green — no significant risk</div>
+      <aside class="side-column">
+        <section class="info-card combined-status-card">
+          <div class="combined-alerts-section">
+            <span class="eyebrow">WEATHER MONITORING</span>
+            <h2>Automated weather risk</h2>
+
+            <div class="alert-summary" id="alertSummary">
+              <div class="alert-level normal" id="weatherAlertLevel">
+                <span class="alert-dot"></span>
+                <div>
+                  <strong id="alertTitle">No significant risk detected</strong>
+                  <small id="alertDetail">Analyzing the latest forecast…</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert-factors" id="alertFactors"></div>
+
+            <div class="legend">
+              <div><span class="legend-dot red"></span> Red — severe risk</div>
+              <div><span class="legend-dot orange"></span> Orange — significant risk</div>
+              <div><span class="legend-dot yellow"></span> Yellow — monitor</div>
+              <div><span class="legend-dot green"></span> Green — no significant risk</div>
+            </div>
+
+            <div class="alert-disclaimer">
+              Automated assessment from Open-Meteo forecast data. These are <strong>not official PAGASA warnings</strong>.
+            </div>
           </div>
 
-          <div class="alert-disclaimer">
-            Automated assessment from Open-Meteo forecast data. These are <strong>not official PAGASA warnings</strong>.
+          <div class="combined-monitoring-section">
+            <div class="combined-section-heading">
+              <span class="eyebrow">MONITORING STATUS</span>
+              <h3>Feed status</h3>
+            </div>
+
+            <div class="status-row">
+              <span class="status-dot"></span>
+              <div>
+                <strong id="feedStatus">Connected</strong>
+                <small>JMA Himawari imagery</small>
+              </div>
+            </div>
+
+            <div class="monitoring-metrics">
+              <div class="metric">
+                <span>Last refresh</span>
+                <strong id="refreshTime">--:--:--</strong>
+              </div>
+              <div class="metric">
+                <span>Next refresh</span>
+                <strong id="nextRefresh">10 min</strong>
+              </div>
+            </div>
           </div>
         </section>
       </aside>
@@ -244,5 +344,7 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="weathermap.js"></script>
 </body>
 </html>

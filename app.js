@@ -29,6 +29,32 @@ let countdownTimer = null;
 let secondsUntilRefresh = 600;
 let isPlaying = true;
 
+
+function updateSatelliteImageLayout() {
+  const frame = image?.closest(".image-frame");
+  if (!frame || !image) return;
+
+  const frameWidth = frame.clientWidth;
+  const frameHeight = frame.clientHeight;
+  if (!frameWidth || !frameHeight || !image.naturalWidth || !image.naturalHeight) return;
+
+  const sourceRatio = image.naturalWidth / image.naturalHeight;
+  const frameRatio = frameWidth / frameHeight;
+
+  // Expose the real image ratio to CSS.  The desktop CSS uses cover for the
+  // wide monitoring widget; the class is useful for responsive breakpoints
+  // and prevents stale sizing when the browser is resized.
+  frame.style.setProperty("--satellite-source-ratio", sourceRatio.toFixed(4));
+  frame.style.setProperty("--satellite-frame-ratio", frameRatio.toFixed(4));
+  frame.classList.toggle("satellite-source-narrow", sourceRatio < frameRatio * 0.82);
+  frame.classList.toggle("satellite-source-wide", sourceRatio > frameRatio * 1.18);
+}
+
+if (image) {
+  image.addEventListener("load", updateSatelliteImageLayout);
+  window.addEventListener("resize", updateSatelliteImageLayout, { passive: true });
+}
+
 function setStatus(connected) {
   feedStatus.textContent = connected ? "Connected" : "Feed unavailable";
   statusText.textContent = connected ? "LIVE LOOP" : "FEED ERROR";
@@ -321,31 +347,11 @@ const alertDetail = document.getElementById("alertDetail");
 const alertLevel = document.getElementById("weatherAlertLevel");
 const alertFactors = document.getElementById("alertFactors");
 
-function calculateWeatherRisk(data) {
-  const h = data.hourly;
-  const start = getForecastStartIndex();
-  const end = Math.min(start + 6, h.time.length);
-
-  let maxRain = 0;
-  let maxWind = 0;
-  let maxGust = 0;
-  let maxRainProbability = 0;
-  let thunderstormHours = 0;
-
-  for (let i = start; i < end; i++) {
-    maxRain = Math.max(maxRain, Number(h.precipitation?.[i] || 0));
-    maxWind = Math.max(maxWind, Number(h.wind_speed_10m?.[i] || 0));
-    maxGust = Math.max(maxGust, Number(h.wind_gusts_10m?.[i] || 0));
-    maxRainProbability = Math.max(
-      maxRainProbability,
-      Number(h.precipitation_probability?.[i] || 0)
-    );
-
-    const code = Number(h.weather_code?.[i]);
-    if ([95, 96, 99].includes(code)) thunderstormHours++;
-  }
-
-  // Transparent, local dashboard thresholds — not official PAGASA criteria.
+// Transparent, local dashboard thresholds — not official PAGASA criteria.
+// Pulled out as a standalone function so the precipitation/storm map
+// (weathermap.js) can score city forecasts with the exact same rules
+// used here, instead of maintaining a second copy of the thresholds.
+function scoreWeatherWindow({ maxRain, maxWind, maxGust, maxRainProbability, thunderstormHours }) {
   let level = "normal";
   let title = "No significant risk detected";
   let detail = "Forecast conditions remain below the dashboard alert thresholds.";
@@ -398,7 +404,40 @@ function calculateWeatherRisk(data) {
     detail = "Conditions may become hazardous. Continue monitoring.";
   }
 
-  return { level, title, detail, factors, maxRain, maxWind, maxGust };
+  return { level, title, detail, factors, score };
+}
+
+// Exposed so weathermap.js can reuse the exact same thresholds for the
+// single visitor-location storm-risk blip on the map.
+window.HimaWatchRisk = scoreWeatherWindow;
+
+function calculateWeatherRisk(data) {
+  const h = data.hourly;
+  const start = getForecastStartIndex();
+  const end = Math.min(start + 6, h.time.length);
+
+  let maxRain = 0;
+  let maxWind = 0;
+  let maxGust = 0;
+  let maxRainProbability = 0;
+  let thunderstormHours = 0;
+
+  for (let i = start; i < end; i++) {
+    maxRain = Math.max(maxRain, Number(h.precipitation?.[i] || 0));
+    maxWind = Math.max(maxWind, Number(h.wind_speed_10m?.[i] || 0));
+    maxGust = Math.max(maxGust, Number(h.wind_gusts_10m?.[i] || 0));
+    maxRainProbability = Math.max(
+      maxRainProbability,
+      Number(h.precipitation_probability?.[i] || 0)
+    );
+
+    const code = Number(h.weather_code?.[i]);
+    if ([95, 96, 99].includes(code)) thunderstormHours++;
+  }
+
+  const result = scoreWeatherWindow({ maxRain, maxWind, maxGust, maxRainProbability, thunderstormHours });
+
+  return { ...result, maxRain, maxWind, maxGust };
 }
 
 function renderWeatherRisk(data) {
@@ -523,7 +562,7 @@ function renderCurrentForecast(data) {
   const start = getForecastStartIndex();
   forecastSelectedIndex = start;
 
-  const values = hourly.temperature_2m.slice(start, start + 24);
+  const values = hourly.temperature_2m.slice(start, start + 8);
   const maxTemp = Math.max(...values);
   const minTemp = Math.min(...values);
   document.getElementById("chartMaxTemp").textContent = `${Math.round(maxTemp)}°`;
@@ -533,7 +572,7 @@ function renderCurrentForecast(data) {
   renderDailyForecast(data);
 
   forecastTimeSlider.min = String(start);
-  forecastTimeSlider.max = String(Math.min(start + 23, hourly.time.length - 1));
+  forecastTimeSlider.max = String(Math.min(start + 7, hourly.time.length - 1));
   forecastTimeSlider.value = String(start);
 
   updateForecastSelection(start);
@@ -582,9 +621,9 @@ function renderDailyForecast(data) {
             ${Math.round(daily.temperature_2m_min[index])}°
           </div>
           <div class="condition">${description}</div>
-          <div class="day-metrics">
-            <span class="rain">☂ ${daily.precipitation_probability_max?.[index] ?? 0}%</span>
-            <span class="wind">≋ ${Math.round(daily.wind_speed_10m_max?.[index] || 0)} km/h</span>
+          <div class="day-metrics" aria-label="Daily precipitation probability and maximum wind">
+            <span class="rain" title="Precipitation probability">☂ <b>${daily.precipitation_probability_max?.[index] ?? 0}%</b></span>
+            <span class="wind" title="Maximum wind speed">≋ <b>${Math.round(daily.wind_speed_10m_max?.[index] || 0)} km/h</b></span>
           </div>
         </div>
       `;
@@ -622,7 +661,7 @@ function drawPagasaForecastChart() {
   ctx.clearRect(0, 0, width, height);
 
   const start = getForecastStartIndex();
-  const count = Math.min(24, forecastData.hourly.time.length - start);
+  const count = Math.min(8, forecastData.hourly.time.length - start);
 
   const temps = forecastData.hourly.temperature_2m.slice(start, start + count);
   const rain = forecastData.hourly.precipitation.slice(start, start + count);
@@ -816,6 +855,14 @@ function renderCityResults(results) {
 
       citySearchInput.value = place.name;
       closeCityResults();
+
+      // Keep the Storm Map synchronized with the city selected in the
+      // Philippines Forecast widget. The map uses this exact location for
+      // its single thunderstorm-risk blip and radar focus.
+      window.dispatchEvent(new CustomEvent("himawatch:forecast-location-changed", {
+        detail: { ...currentForecastLocation, source: "forecast-search" }
+      }));
+
       loadForecast(currentForecastLocation);
     });
   });
@@ -1054,6 +1101,10 @@ async function getCityNameFromCoordinates(latitude, longitude) {
 
 async function loadForecastForUserLocation() {
   if (!navigator.geolocation) {
+    window.HimaWatchUserLocation = { ...FALLBACK_FORECAST_LOCATION, accuracy: null };
+    window.dispatchEvent(new CustomEvent("himawatch:location-ready", {
+      detail: window.HimaWatchUserLocation
+    }));
     loadForecast(FALLBACK_FORECAST_LOCATION);
     if (citySearchInput) citySearchInput.value = FALLBACK_FORECAST_LOCATION.name;
     return;
@@ -1075,6 +1126,19 @@ async function loadForecastForUserLocation() {
         longitude
       };
 
+      // Share the resolved visitor location with the storm-risk map.
+      // The map uses this same GPS position so the risk shown there is
+      // specific to the user instead of displaying every Philippine city.
+      window.HimaWatchUserLocation = {
+        name: city,
+        latitude,
+        longitude,
+        accuracy
+      };
+      window.dispatchEvent(new CustomEvent("himawatch:location-ready", {
+        detail: window.HimaWatchUserLocation
+      }));
+
       forecastLocation.textContent = city;
       forecastLocation.title = Number.isFinite(accuracy)
         ? `GPS location • accuracy ±${Math.round(accuracy)} m`
@@ -1085,6 +1149,10 @@ async function loadForecastForUserLocation() {
     error => {
       console.warn("Browser location unavailable; using Manila.", error.message);
       currentForecastLocation = { ...FALLBACK_FORECAST_LOCATION };
+      window.HimaWatchUserLocation = { ...FALLBACK_FORECAST_LOCATION, accuracy: null };
+      window.dispatchEvent(new CustomEvent("himawatch:location-ready", {
+        detail: window.HimaWatchUserLocation
+      }));
       if (citySearchInput) citySearchInput.value = FALLBACK_FORECAST_LOCATION.name;
       loadForecast(FALLBACK_FORECAST_LOCATION);
     },

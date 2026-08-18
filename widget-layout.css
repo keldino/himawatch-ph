@@ -1,0 +1,166 @@
+/* HIMAWatch PH — Widget Dashboard Layout
+   Desktop: preserve each concept as a self-contained widget and fit the
+   operational overview into one viewport. Mobile rules remain untouched.
+*/
+@media (min-width: 1101px) {
+  html, body { overflow: hidden !important; }
+  body { min-height: 100vh !important; }
+  .app-shell {
+    width: min(1800px, calc(100% - 28px)) !important;
+    height: 100vh !important;
+    min-height: 0 !important;
+    padding: 10px 0 !important;
+    box-sizing: border-box !important;
+  }
+  .topbar {
+    margin-bottom: 8px !important;
+    min-height: 52px !important;
+  }
+  .dashboard {
+    height: calc(100vh - 70px) !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr) minmax(250px, .8fr) !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .85fr) !important;
+    grid-template-areas:
+      "satellite forecast monitoring"
+      "satellite forecast alerts"
+      "map map map" !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .main-column, .side-column { display: contents !important; }
+
+  .main-column > .hero-card,
+  .main-column > .forecast-card,
+  .main-column > .weather-map-card,
+  .side-column > .info-card,
+  .side-column > .alerts-card {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .main-column > .hero-card { grid-area: satellite; }
+  .main-column > .forecast-card { grid-area: forecast; }
+  .side-column > .info-card { grid-area: monitoring; }
+  .side-column > .alerts-card { grid-area: alerts; }
+  .main-column > .weather-map-card { grid-area: map; }
+
+  /* Satellite widget: the image gets the most real estate, without taking
+     over the whole page. */
+  .hero-card .card-header {
+    min-height: 52px !important;
+    padding: 8px 12px !important;
+  }
+  .hero-card h1 { font-size: 17px !important; }
+  .hero-card .controls { gap: 6px !important; }
+  .hero-card select, .hero-card .button {
+    height: 30px !important;
+    font-size: 12px !important;
+    padding: 0 8px !important;
+  }
+  .hero-card .image-frame {
+    height: calc(100% - 168px) !important;
+    min-height: 180px !important;
+    max-height: none !important;
+  }
+  .hero-card .image-frame img { object-fit: contain !important; }
+  .hero-card > .timeline { padding: 5px 10px !important; }
+  .hero-card > .timeline .timeline-scale { font-size: 9px !important; }
+  .hero-card > .shared-time-strip,
+  .hero-card > .layer-note { padding: 5px 10px !important; font-size: 9px !important; }
+  .hero-card > .image-footer { padding: 5px 10px !important; }
+  .hero-card > .image-footer .label { font-size: 8px !important; }
+  .hero-card > .image-footer strong { font-size: 10px !important; }
+
+  /* Forecast widget: keep its complete concept together, but make each
+     internal component denser rather than cropping it. */
+  .forecast-card {
+    padding: 10px !important;
+  }
+  .forecast-title-row { gap: 8px !important; }
+  .forecast-title-row h2 { font-size: 17px !important; margin: 2px 0 !important; }
+  .forecast-title-row small, .forecast-source-line { font-size: 9px !important; }
+  .city-search input { height: 28px !important; font-size: 11px !important; }
+  .forecast-chart-card { margin-top: 6px !important; }
+  .forecast-chart-card .pagasa-chart-wrap {
+    height: 110px !important;
+    min-height: 110px !important;
+  }
+  .forecast-selected { padding: 7px !important; }
+  .selected-weather-icon { font-size: 26px !important; }
+  .selected-main strong { font-size: 19px !important; }
+  .selected-main span, .selected-metrics span { font-size: 8px !important; }
+  .selected-metrics strong { font-size: 11px !important; }
+  .forecast-section-title { margin: 5px 0 3px !important; font-size: 9px !important; }
+  .hourly-strip { min-height: 38px !important; max-height: 48px !important; overflow: hidden !important; }
+  .hourly-strip > * { transform: scale(.86); transform-origin: center; }
+  .forecast-time-slider { margin: 3px 0 !important; }
+  .daily-forecast {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+  .daily-forecast .day-card { min-width: 0 !important; padding: 5px !important; }
+  .forecast-source { font-size: 8px !important; margin-top: 4px !important; }
+
+  /* Monitoring/alert widgets share the same visual density. */
+  .side-column .info-card { padding: 10px !important; }
+  .side-column h2 { font-size: 16px !important; margin: 2px 0 8px !important; }
+  .side-column .metric { padding: 6px 0 !important; }
+  .side-column .metric span, .side-column small { font-size: 9px !important; }
+  .side-column .metric strong { font-size: 13px !important; }
+  .alerts-card { padding: 10px !important; }
+  .alerts-card .alert-summary { padding: 7px !important; }
+  .alerts-card .legend { gap: 4px !important; font-size: 9px !important; }
+  .alert-disclaimer { font-size: 8px !important; margin-top: 6px !important; }
+
+  /* Map is a full-width widget: never shrink it to a thumbnail just to fit
+     the other concepts. */
+  .weather-map-card {
+    display: grid !important;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto !important;
+    padding: 0 !important;
+  }
+  .weather-map-card > .card-header { min-height: 42px !important; padding: 6px 10px !important; }
+  .weather-map-card > .card-header h2 { font-size: 15px !important; }
+  .weather-map-card .map-layer-toggles {
+    padding: 5px 8px !important;
+    gap: 5px !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+  }
+  .weather-map-card .layer-toggle,
+  .weather-map-card .opacity-control { font-size: 9px !important; white-space: nowrap !important; }
+  .weather-map-card .map-frame {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+  .weather-map-card .map-frame #weatherMap { height: 100% !important; min-height: 0 !important; }
+  .weather-map-card > .timeline { padding: 4px 8px !important; }
+  .weather-map-card > .shared-time-strip,
+  .weather-map-card > .map-layer-status,
+  .weather-map-card > .map-legend,
+  .weather-map-card > .layer-note { padding: 4px 8px !important; font-size: 8px !important; }
+  .weather-map-card > .map-legend { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+}
+
+/* Laptop-height variant: preserve widget proportions while giving the map
+   a little more vertical room. */
+@media (min-width: 1101px) and (max-height: 850px) {
+  .dashboard { grid-template-rows: minmax(0, .95fr) minmax(0, 1fr) minmax(0, .8fr) !important; }
+  .hero-card .image-frame { height: calc(100% - 155px) !important; }
+  .forecast-chart-card .pagasa-chart-wrap { height: 88px !important; min-height: 88px !important; }
+  .forecast-selected { padding: 5px !important; }
+  .hourly-strip { display: none !important; }
+  .daily-forecast .day-card { padding: 3px !important; }
+}
