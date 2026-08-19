@@ -807,14 +807,14 @@ function updateForecastSelection(index) {
 
 
 // -----------------------------------------------------------------------------
-// Philippine city search
-// Uses Open-Meteo's geocoding endpoint and restricts results to Philippines.
+// Philippine place search
+// Uses Open-Meteo's geocoding endpoint and returns any matching place in the Philippines.
 // -----------------------------------------------------------------------------
 const citySearch = document.getElementById("citySearch");
 const citySearchInput = document.getElementById("citySearchInput");
 const citySearchResults = document.getElementById("citySearchResults");
 
-function escapeCityHtml(value) {
+function escapePlaceHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -831,15 +831,15 @@ function closeCityResults() {
 function renderCityResults(results) {
   if (!results.length) {
     citySearchResults.innerHTML =
-      '<div class="city-search-message">No Philippine city found.</div>';
+      '<div class="city-search-message">No Philippine place found.</div>';
     citySearchResults.hidden = false;
     return;
   }
 
   citySearchResults.innerHTML = results.map((place, index) => `
     <button type="button" class="city-result" data-city-index="${index}">
-      <strong>${escapeCityHtml(place.name)}</strong>
-      <span>${escapeCityHtml(place.admin1 || "Philippines")}</span>
+      <strong>${escapePlaceHtml(place.name)}</strong>
+      <span>${escapePlaceHtml(place.admin2 || place.admin1 || "Philippines")}</span>
     </button>
   `).join("");
 
@@ -870,7 +870,7 @@ function renderCityResults(results) {
   citySearchResults.hidden = false;
 }
 
-async function searchPhilippineCities() {
+async function searchPhilippinePlaces() {
   const query = citySearchInput.value.trim();
 
   if (query.length < 2) {
@@ -881,15 +881,16 @@ async function searchPhilippineCities() {
   }
 
   citySearchResults.innerHTML =
-    '<div class="city-search-message">Searching cities…</div>';
+    '<div class="city-search-message">Searching Philippine places…</div>';
   citySearchResults.hidden = false;
 
   try {
     const params = new URLSearchParams({
       name: query,
-      count: "10",
+      count: "20",
       language: "en",
-      format: "json"
+      format: "json",
+      countryCode: "PH"
     });
 
     const response = await fetch(
@@ -898,7 +899,7 @@ async function searchPhilippineCities() {
     );
 
     if (!response.ok) {
-      throw new Error(`City search HTTP ${response.status}`);
+      throw new Error(`Place search HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -912,9 +913,9 @@ async function searchPhilippineCities() {
 
     renderCityResults(philippinesOnly);
   } catch (error) {
-    console.error("City search failed:", error);
+    console.error("Place search failed:", error);
     citySearchResults.innerHTML =
-      '<div class="city-search-message">City search is unavailable. Check your internet connection.</div>';
+      '<div class="city-search-message">Place search is unavailable. Check your internet connection.</div>';
     citySearchResults.hidden = false;
   }
 }
@@ -936,7 +937,7 @@ citySearchInput.addEventListener("keyup", event => {
   }
 
   citySearchDebounceTimer = setTimeout(() => {
-    searchPhilippineCities();
+    searchPhilippinePlaces();
   }, 280);
 });
 
@@ -1128,7 +1129,7 @@ async function loadForecastForUserLocation() {
 
       // Share the resolved visitor location with the storm-risk map.
       // The map uses this same GPS position so the risk shown there is
-      // specific to the user instead of displaying every Philippine city.
+      // specific to the user instead of displaying every Philippine place.
       window.HimaWatchUserLocation = {
         name: city,
         latitude,
